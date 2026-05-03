@@ -56,6 +56,31 @@
 
 namespace
 {
+#ifdef LOVE_ANDROID
+	static const char *BALATRO_ANDROID_SAVE_PATH = "/storage/emulated/0/Documents/Balatro/game/save";
+
+	bool createAndroidDirectoryTree(const char *path)
+	{
+		std::string current;
+		std::stringstream stream(path);
+		std::string segment;
+
+		while (std::getline(stream, segment, '/'))
+		{
+			if (segment.empty())
+				continue;
+
+			current += "/";
+			current += segment;
+
+			if (!love::android::directoryExists(current.c_str()) && !love::android::mkdir(current.c_str()))
+				return false;
+		}
+
+		return true;
+	}
+#endif
+
 	size_t getDriveDelim(const std::string &input)
 	{
 		for (size_t i = 0; i < input.size(); ++i)
@@ -176,18 +201,10 @@ bool Filesystem::setIdentity(const char *ident, bool appendToPath)
 	if (save_identity == "")
 		save_identity = "unnamed";
 
-	std::string storage_path;
-	if (isAndroidSaveExternal())
-		storage_path = SDL_AndroidGetExternalStoragePath();
-	else
-		storage_path = SDL_AndroidGetInternalStoragePath();
-
-	std::string save_directory = storage_path + "/save";
-
-	save_path_full = storage_path + std::string("/save/") + save_identity;
+	save_path_full = BALATRO_ANDROID_SAVE_PATH;
 
 	if (!love::android::directoryExists(save_path_full.c_str()) &&
-			!love::android::mkdir(save_path_full.c_str()))
+			!createAndroidDirectoryTree(save_path_full.c_str()))
 		SDL_Log("Error: Could not create save directory %s!", save_path_full.c_str());
 #endif
 
