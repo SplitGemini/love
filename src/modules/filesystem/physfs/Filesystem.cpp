@@ -350,6 +350,32 @@ bool Filesystem::setupWriteDirectory()
 	if (save_identity.empty() || save_path_full.empty() || save_path_relative.empty())
 		return false;
 
+#ifdef LOVE_ANDROID
+	if (!love::android::directoryExists(save_path_full.c_str()) && !createAndroidDirectoryTree(save_path_full.c_str()))
+	{
+		SDL_Log("Error: Could not create Android save directory tree %s!", save_path_full.c_str());
+		return false;
+	}
+
+	if (!PHYSFS_setWriteDir(save_path_full.c_str()))
+	{
+		const char *err = PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode());
+		SDL_Log("Error: Could not set Android write directory %s (%s)!", save_path_full.c_str(), err ? err : "unknown error");
+		return false;
+	}
+
+	if (!PHYSFS_mount(save_path_full.c_str(), nullptr, 0))
+	{
+		const char *err = PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode());
+		SDL_Log("Error: Could not mount Android save directory %s (%s)!", save_path_full.c_str(), err ? err : "unknown error");
+		PHYSFS_setWriteDir(nullptr);
+		return false;
+	}
+
+	SDL_Log("Using Android write directory %s", save_path_full.c_str());
+	return true;
+#endif
+
 	// We need to make sure the write directory is created. To do that, we also
 	// need to make sure all its parent directories are also created.
 	std::string temp_writedir = getDriveRoot(save_path_full);
